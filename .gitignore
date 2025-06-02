@@ -1,0 +1,102 @@
+# Models - these are large and should not be in git
+models/
+*.pt
+*.pth
+*.bin
+*.safetensors
+model_weights/
+pretrained_models/
+final_model/
+checkpoint*/
+
+# Data files (if they're large or sensitive)
+data/unlabeled_poems.txt
+data/poem_emotions_*.csv
+data/poem_emotions_multilabel_*.csv
+*.csv
+*.txt
+*.xlsx
+*.xls
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Logs
+logs/
+*.log
+training.log
+*.out
+*.err
+
+# Results and visualizations (optional - uncomment if needed)
+# results/
+# visualizations/
+# *.png
+# *.jpg
+# *.pdf
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.cache
+tmp/
+temp/
+
+# System files
+Thumbs.db
+desktop.ini
+
+# Flask
+instance/
+.webassets-cache
+
+# Coverage and testing
+htmlcov/
+.coverage
+.coverage.*
+.pytest_cache/
+.tox/
+
+# Documentation builds
+docs/_build/
+site/
+
+# Hugging Face
+huggingface_hub/
+.cache/
+
+# Wandb
+wandb/
+
+# Tensorboard
+runs/
+events.out.tfevents.*
