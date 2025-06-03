@@ -1,6 +1,6 @@
 """
 Chinese Poetry Emotion Classification System
-Optimized implementation with unsupervised pretraining and web interface
+Updated implementation with flexible multi-label support
 """
 
 import torch
@@ -97,7 +97,7 @@ class PoetryEmotionClassifier(nn.Module):
     """Enhanced multi-label emotion classifier with attention visualization"""
     
     def __init__(self, model_name: str = 'bert-base-chinese', 
-                 num_labels: int = 4, dropout_rate: float = 0.3):
+                 num_labels: int = 13, dropout_rate: float = 0.3):
         super().__init__()
         
         self.num_labels = num_labels
@@ -166,14 +166,37 @@ class PoetryEmotionClassifier(nn.Module):
 
 
 class OptimizedPoetryTrainer:
-    """Optimized trainer with unsupervised pretraining and supervised fine-tuning"""
+    """Optimized trainer with automatic emotion detection"""
     
     def __init__(self, base_model_name: str = 'bert-base-chinese'):
         self.base_model_name = base_model_name
         self.tokenizer = AutoTokenizer.from_pretrained(base_model_name)
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        self.emotion_names = ['哀伤', '思念', '怨恨', '喜悦']
+        self.emotion_names = []  # Will be automatically detected
         print(f"Using device: {self.device}")
+    
+    def detect_emotions_from_csv(self, csv_path: str) -> List[str]:
+        """Automatically detect emotion columns from CSV"""
+        df = pd.read_csv(csv_path, encoding='utf-8')
+        
+        # Common non-emotion columns to exclude
+        exclude_columns = ['content', 'poem', 'text', 'title', 'author', 'dynasty', 
+                          'id', 'index', 'label', 'category', 'source', 'year']
+        
+        # Find emotion columns (numeric columns that aren't excluded)
+        emotion_columns = []
+        for col in df.columns:
+            if col.lower() not in [x.lower() for x in exclude_columns]:
+                # Check if column contains binary values (0/1) or numeric values
+                try:
+                    unique_vals = df[col].dropna().unique()
+                    if len(unique_vals) <= 10 and all(isinstance(x, (int, float)) or str(x).isdigit() for x in unique_vals):
+                        emotion_columns.append(col)
+                except:
+                    continue
+        
+        print(f"Detected emotion columns: {emotion_columns}")
+        return emotion_columns
     
     def pretrain_on_unlabeled_data(self, unlabeled_texts: List[str], 
                                    output_dir: str = './pretrained_poetry_model',
@@ -232,29 +255,67 @@ class OptimizedPoetryTrainer:
         print(f"Pretraining completed. Model saved to {output_dir}")
         return output_dir
     
-    def prepare_labeled_data(self, csv_path: str) -> Tuple[List[str], List[List[int]]]:
-        """Load and prepare labeled training data"""
+    def prepare_labeled_data(self, csv_path: str) -> Tuple[List[str], List[List[int]], List[str]]:
+        """Load and prepare labeled training data with automatic emotion detection"""
         df = pd.read_csv(csv_path, encoding='utf-8')
         
-        texts = df['content'].tolist()
+        # Automatically detect emotion columns
+        self.emotion_names = self.detect_emotions_from_csv(csv_path)
+        
+        # Find the text column
+        text_columns = ['content', 'poem', 'text']
+        text_column = None
+        for col in text_columns:
+            if col in df.columns:
+                text_column = col
+                break
+        
+        if text_column is None:
+            raise ValueError(f"Could not find text column. Available columns: {list(df.columns)}")
+        
+        texts = df[text_column].astype(str).tolist()
         labels = []
         
+        # Build labels for each poem
         for _, row in df.iterrows():
             label = []
             for emotion in self.emotion_names:
-                label.append(int(row[emotion]) if emotion in row else 0)
+                if emotion in row:
+                    # Convert to binary (handle various formats)
+                    val = row[emotion]
+                    if pd.isna(val):
+                        label.append(0)
+                    elif isinstance(val, str):
+                        label.append(1 if val.lower() in ['true', '1', 'yes', 'y'] else 0)
+                    else:
+                        label.append(int(bool(float(val))))
+                else:
+                    label.append(0)
             labels.append(label)
         
-        print(f"Loaded {len(texts)} labeled poems")
-        return texts, labels
+        print(f"Loaded {len(texts)} labeled poems with {len(self.emotion_names)} emotions")
+        print(f"Emotion names: {self.emotion_names}")
+        
+        # Print distribution
+        labels_array = np.array(labels)
+        for i, emotion in enumerate(self.emotion_names):
+            count = labels_array[:, i].sum()
+            percentage = (count / len(labels)) * 100
+            print(f"  {emotion}: {count} poems ({percentage:.1f}%)")
+        
+        return texts, labels, self.emotion_names
     
     def fine_tune_model(self, pretrained_model_path: str, texts: List[str], 
-                       labels: List[List[int]], output_dir: str = './final_model',
-                       num_epochs: int = 5, batch_size: int = 16, learning_rate: float = 2e-5):
+                       labels: List[List[int]], emotion_names: List[str],
+                       output_dir: str = './final_model',
+                       num_epochs: int = 10, batch_size: int = 16, learning_rate: float = 2e-5):
         """
         Fine-tune the pretrained model on labeled data
         """
         print("Starting fine-tuning on labeled data...")
+        
+        # Update emotion names
+        self.emotion_names = emotion_names
         
         # Split data
         X_train, X_temp, y_train, y_temp = train_test_split(
@@ -341,7 +402,7 @@ class OptimizedPoetryTrainer:
             # Calculate F1 score
             all_preds = np.array(all_preds)
             all_labels = np.array(all_labels)
-            val_f1 = f1_score(all_labels, all_preds, average='macro')
+            val_f1 = f1_score(all_labels, all_preds, average='macro', zero_division=0)
             
             print(f"Epoch {epoch+1}: Train Loss={avg_train_loss:.4f}, "
                   f"Val Loss={avg_val_loss:.4f}, Val F1={val_f1:.4f}")
@@ -658,33 +719,38 @@ def train_complete_system(unlabeled_path: str, labeled_path: str, output_dir: st
     # Initialize trainer
     trainer = OptimizedPoetryTrainer()
     
-    # Load unlabeled data
-    print("Loading unlabeled data...")
-    with open(unlabeled_path, 'r', encoding='utf-8') as f:
-        unlabeled_texts = [line.strip() for line in f if line.strip()]
+    # Load labeled data first to detect emotions
+    texts, labels, emotion_names = trainer.prepare_labeled_data(labeled_path)
     
-    # Limit to manageable size for pretraining
-    if len(unlabeled_texts) > 10000:
-        unlabeled_texts = unlabeled_texts[:10000]
+    # Load unlabeled data if available
+    if os.path.exists(unlabeled_path):
+        print("Loading unlabeled data...")
+        with open(unlabeled_path, 'r', encoding='utf-8') as f:
+            unlabeled_texts = [line.strip() for line in f if line.strip()]
+        
+        # Limit to manageable size for pretraining
+        if len(unlabeled_texts) > 100000:
+            unlabeled_texts = unlabeled_texts[:100000]
+        
+        print(f"Loaded {len(unlabeled_texts)} unlabeled poems")
+        
+        # Step 1: Pretrain on unlabeled data
+        pretrained_model_path = trainer.pretrain_on_unlabeled_data(
+            unlabeled_texts, 
+            output_dir=pretrained_dir,
+            num_epochs=3,
+            batch_size=32
+        )
+    else:
+        print("No unlabeled data found, skipping pretraining...")
+        pretrained_model_path = trainer.base_model_name
     
-    print(f"Loaded {len(unlabeled_texts)} unlabeled poems")
-    
-    # Step 1: Pretrain on unlabeled data
-    pretrained_model_path = trainer.pretrain_on_unlabeled_data(
-        unlabeled_texts, 
-        output_dir=pretrained_dir,
-        num_epochs=3,
-        batch_size=32
-    )
-    
-    # Step 2: Load labeled data
-    texts, labels = trainer.prepare_labeled_data(labeled_path)
-    
-    # Step 3: Fine-tune on labeled data
+    # Step 2: Fine-tune on labeled data
     model, test_results = trainer.fine_tune_model(
         pretrained_model_path,
         texts,
         labels,
+        emotion_names,
         output_dir=final_model_dir,
         num_epochs=5,
         batch_size=16
@@ -703,7 +769,7 @@ if __name__ == "__main__":
     
     # Paths
     unlabeled_path = './data/unlabeled_poems.txt'
-    labeled_path = './data/poem_emotions_consolidated.csv'
+    labeled_path = './data/poem_emotions_multilabel.csv'  # Updated for multilabel
     
     # Train the complete system
     final_model_dir = train_complete_system(unlabeled_path, labeled_path)

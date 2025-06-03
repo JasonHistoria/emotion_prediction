@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>诗歌情感分析系统 - Poetry Emotion Analysis</title>
+    <title>诗歌情感分析</title>
     <style>
         * {
             margin: 0;
@@ -12,230 +12,268 @@
         }
         
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Microsoft YaHei", "Segoe UI", Roboto, sans-serif;
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-            min-height: 100vh;
-            padding: 20px;
+            font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+            background: #f8f9fa;
+            color: #333;
+            line-height: 1.6;
         }
         
         .container {
-            max-width: 1200px;
+            max-width: 1000px;
             margin: 0 auto;
+            padding: 20px;
         }
         
         .header {
             text-align: center;
             margin-bottom: 40px;
-            padding: 30px;
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
         }
         
         .header h1 {
+            font-size: 2.5rem;
+            font-weight: 300;
             color: #2c3e50;
-            font-size: 2.5em;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
         }
         
         .header p {
-            color: #7f8c8d;
-            font-size: 1.2em;
+            color: #666;
+            font-size: 1.1rem;
         }
         
-        .main-content {
+        .main {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 30px;
-            margin-bottom: 30px;
+            gap: 40px;
+            margin-bottom: 40px;
         }
         
         @media (max-width: 768px) {
-            .main-content {
+            .main {
                 grid-template-columns: 1fr;
+                gap: 30px;
             }
         }
         
-        .input-section, .results-section {
+        .section {
             background: white;
+            border-radius: 8px;
             padding: 30px;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
         }
         
         .section-title {
+            font-size: 1.3rem;
+            font-weight: 600;
             color: #2c3e50;
-            font-size: 1.5em;
             margin-bottom: 20px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
         }
         
         .poem-input {
             width: 100%;
             min-height: 200px;
-            padding: 15px;
-            border: 2px solid #e0e0e0;
-            border-radius: 10px;
-            font-size: 1.1em;
+            padding: 16px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 1rem;
             resize: vertical;
-            transition: border-color 0.3s;
+            font-family: inherit;
+            transition: border-color 0.2s;
         }
         
         .poem-input:focus {
             outline: none;
-            border-color: #3498db;
+            border-color: #007bff;
         }
         
         .analyze-btn {
             width: 100%;
-            padding: 15px;
-            margin-top: 20px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 12px;
+            margin-top: 16px;
+            background: #007bff;
             color: white;
             border: none;
-            border-radius: 10px;
-            font-size: 1.2em;
+            border-radius: 6px;
+            font-size: 1rem;
             cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
+            transition: background-color 0.2s;
         }
         
-        .analyze-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
-        }
-        
-        .analyze-btn:active {
-            transform: translateY(0);
+        .analyze-btn:hover:not(:disabled) {
+            background: #0056b3;
         }
         
         .analyze-btn:disabled {
-            background: #95a5a6;
+            background: #ccc;
             cursor: not-allowed;
-            transform: none;
         }
         
-        .emotion-results {
-            margin-bottom: 30px;
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+            color: #666;
         }
         
-        .emotion-bar {
-            margin-bottom: 20px;
+        .loading.active {
+            display: block;
         }
         
-        .emotion-label {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 8px;
+        .spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #007bff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .results {
+            display: none;
+        }
+        
+        .results.active {
+            display: block;
+        }
+        
+        .predicted-emotions {
+            margin-bottom: 24px;
+        }
+        
+        .emotion-tag {
+            display: inline-block;
+            padding: 4px 12px;
+            margin: 2px 4px 2px 0;
+            background: #007bff;
+            color: white;
+            border-radius: 16px;
+            font-size: 0.9rem;
             font-weight: 500;
         }
         
+        .emotion-grid {
+            display: grid;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+        
+        .emotion-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+        
         .emotion-name {
-            color: #2c3e50;
+            font-weight: 500;
         }
         
         .emotion-score {
-            color: #7f8c8d;
+            color: #666;
+            font-size: 0.9rem;
         }
         
         .progress-bar {
-            width: 100%;
-            height: 25px;
+            flex: 1;
+            height: 6px;
             background: #f0f0f0;
-            border-radius: 15px;
+            border-radius: 3px;
+            margin: 0 12px;
             overflow: hidden;
-            position: relative;
         }
         
         .progress-fill {
             height: 100%;
-            border-radius: 15px;
-            transition: width 1s ease-out;
-            position: relative;
-            overflow: hidden;
+            background: #007bff;
+            border-radius: 3px;
+            transition: width 0.8s ease;
         }
         
-        .progress-fill::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            bottom: 0;
-            right: 0;
-            background: linear-gradient(
-                90deg,
-                rgba(255,255,255,0) 0%,
-                rgba(255,255,255,0.3) 50%,
-                rgba(255,255,255,0) 100%
-            );
-            animation: shimmer 2s infinite;
-        }
-        
-        @keyframes shimmer {
-            0% { transform: translateX(-100%); }
-            100% { transform: translateX(100%); }
-        }
-        
-        .emotion-哀伤 { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
-        .emotion-思念 { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
-        .emotion-怨恨 { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
-        .emotion-喜悦 { background: linear-gradient(135deg, #30cfd0 0%, #330867 100%); }
-        
-        .attention-visualization {
-            margin-top: 30px;
-        }
-        
-        .token-container {
+        .tokens {
             display: flex;
             flex-wrap: wrap;
-            gap: 8px;
-            margin-top: 15px;
-            padding: 20px;
-            background: #f8f9fa;
-            border-radius: 10px;
+            gap: 6px;
+            margin-top: 16px;
         }
         
         .token {
-            padding: 8px 15px;
-            border-radius: 20px;
-            font-size: 1.1em;
-            position: relative;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.9rem;
             cursor: pointer;
-            transition: all 0.3s;
+            transition: transform 0.2s;
         }
         
         .token:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            transform: translateY(-1px);
         }
         
-        .token-tooltip {
-            position: absolute;
-            bottom: 100%;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #2c3e50;
-            color: white;
-            padding: 5px 10px;
-            border-radius: 5px;
-            font-size: 0.9em;
-            white-space: nowrap;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.3s;
-        }
-        
-        .token:hover .token-tooltip {
-            opacity: 1;
-        }
-        
-        .statistics-section {
+        .examples {
             background: white;
+            border-radius: 8px;
             padding: 30px;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            margin-top: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        }
+        
+        .example-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+            margin-top: 20px;
+        }
+        
+        .example-card {
+            padding: 16px;
+            border: 1px solid #eee;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .example-card:hover {
+            border-color: #007bff;
+            box-shadow: 0 2px 8px rgba(0,123,255,0.15);
+        }
+        
+        .example-title {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 4px;
+        }
+        
+        .example-author {
+            color: #666;
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+        }
+        
+        .example-emotions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+        }
+        
+        .example-emotion {
+            padding: 2px 6px;
+            background: #f8f9fa;
+            color: #666;
+            border-radius: 10px;
+            font-size: 0.75rem;
+        }
+        
+        .stats {
+            background: white;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            margin-top: 40px;
         }
         
         .stats-grid {
@@ -245,253 +283,107 @@
             margin-top: 20px;
         }
         
-        .stat-card {
-            padding: 20px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border-radius: 10px;
+        .stat-item {
             text-align: center;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 6px;
         }
         
         .stat-value {
-            font-size: 2em;
-            font-weight: bold;
-            margin-bottom: 5px;
+            font-size: 2rem;
+            font-weight: 600;
+            color: #007bff;
+            margin-bottom: 4px;
         }
         
         .stat-label {
-            font-size: 0.9em;
-            opacity: 0.9;
-        }
-        
-        .educational-tips {
-            background: #e8f5e9;
-            padding: 20px;
-            border-radius: 10px;
-            margin-top: 20px;
-            border-left: 4px solid #4caf50;
-        }
-        
-        .educational-tips h3 {
-            color: #2e7d32;
-            margin-bottom: 10px;
-        }
-        
-        .educational-tips ul {
-            list-style: none;
-            padding-left: 0;
-        }
-        
-        .educational-tips li {
-            margin-bottom: 8px;
-            padding-left: 20px;
-            position: relative;
-        }
-        
-        .educational-tips li:before {
-            content: "💡";
-            position: absolute;
-            left: 0;
-        }
-        
-        .loading {
-            display: none;
-            text-align: center;
-            padding: 20px;
-        }
-        
-        .loading.active {
-            display: block;
-        }
-        
-        .spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #667eea;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 20px;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        .examples-section {
-            background: white;
-            padding: 30px;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            margin-top: 30px;
-        }
-        
-        .example-poems {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 15px;
-            margin-top: 20px;
-        }
-        
-        .example-card {
-            padding: 15px;
-            background: #f8f9fa;
-            border-radius: 10px;
-            cursor: pointer;
-            transition: all 0.3s;
-            border: 2px solid transparent;
-        }
-        
-        .example-card:hover {
-            border-color: #667eea;
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        }
-        
-        .example-title {
-            font-weight: bold;
-            color: #2c3e50;
-            margin-bottom: 5px;
-        }
-        
-        .example-text {
-            color: #7f8c8d;
-            font-size: 0.95em;
+            color: #666;
+            font-size: 0.9rem;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>🏮 诗歌情感分析系统</h1>
-            <p>基于人工智能的中国古典诗歌情感分析工具</p>
+            <h1>诗歌情感分析</h1>
+            <p>基于AI的中文诗歌情感识别系统</p>
         </div>
         
-        <div class="main-content">
-            <div class="input-section">
-                <h2 class="section-title">
-                    <span>📝</span>
-                    <span>输入诗歌</span>
-                </h2>
+        <div class="main">
+            <div class="section">
+                <h2 class="section-title">输入诗歌</h2>
                 <textarea 
                     id="poemInput" 
                     class="poem-input" 
-                    placeholder="请输入您想要分析的诗歌内容...&#10;&#10;例如：&#10;独在异乡为异客，每逢佳节倍思亲。&#10;遥知兄弟登高处，遍插茱萸少一人。"
+                    placeholder="请输入您想要分析的诗歌内容...&#10;&#10;例如：&#10;独在异乡为异客，每逢佳节倍思亲。"
                 ></textarea>
                 <button id="analyzeBtn" class="analyze-btn" onclick="analyzePoem()">
-                    分析诗歌情感
+                    分析情感
                 </button>
-                
-                <div class="educational-tips">
-                    <h3>💡 使用提示</h3>
-                    <ul>
-                        <li>系统支持分析各种形式的中国古典诗歌</li>
-                        <li>诗歌可能同时包含多种情感</li>
-                        <li>关注度越高的词汇对情感判断影响越大</li>
-                        <li>可以尝试修改个别词汇查看情感变化</li>
-                    </ul>
-                </div>
             </div>
             
-            <div class="results-section">
-                <h2 class="section-title">
-                    <span>📊</span>
-                    <span>分析结果</span>
-                </h2>
+            <div class="section">
+                <h2 class="section-title">分析结果</h2>
                 
                 <div id="loadingDiv" class="loading">
                     <div class="spinner"></div>
-                    <p>正在分析诗歌情感...</p>
+                    <p>正在分析...</p>
                 </div>
                 
-                <div id="resultsDiv" style="display: none;">
-                    <div class="emotion-results" id="emotionResults">
-                        <!-- Emotion bars will be inserted here -->
+                <div id="resultsDiv" class="results">
+                    <div class="predicted-emotions">
+                        <strong>检测到的情感：</strong>
+                        <div id="predictedEmotions"></div>
                     </div>
                     
-                    <div class="attention-visualization">
-                        <h3 class="section-title">
-                            <span>🔍</span>
-                            <span>词汇重要性分析</span>
-                        </h3>
-                        <div id="tokenContainer" class="token-container">
-                            <!-- Tokens will be inserted here -->
-                        </div>
-                    </div>
+                    <div class="emotion-grid" id="emotionGrid"></div>
+                    
+                    <h3>重要词汇</h3>
+                    <div id="tokenContainer" class="tokens"></div>
                 </div>
             </div>
         </div>
         
-        <div class="statistics-section">
-            <h2 class="section-title">
-                <span>📈</span>
-                <span>分析统计</span>
-            </h2>
-            <div class="stats-grid" id="statsGrid">
-                <div class="stat-card">
+        <div class="examples">
+            <h2 class="section-title">示例诗歌</h2>
+            <div class="example-grid" id="exampleGrid"></div>
+        </div>
+        
+        <div class="stats">
+            <h2 class="section-title">统计信息</h2>
+            <div class="stats-grid">
+                <div class="stat-item">
                     <div class="stat-value" id="totalAnalyzed">0</div>
-                    <div class="stat-label">总分析次数</div>
+                    <div class="stat-label">分析次数</div>
                 </div>
-                <div class="stat-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                <div class="stat-item">
                     <div class="stat-value" id="avgEmotions">0</div>
-                    <div class="stat-label">平均情感数量</div>
+                    <div class="stat-label">平均情感数</div>
                 </div>
-                <div class="stat-card" style="background: linear-gradient(135deg, #30cfd0 0%, #330867 100%);">
+                <div class="stat-item">
                     <div class="stat-value" id="dominantEmotion">-</div>
-                    <div class="stat-label">最常见情感</div>
+                    <div class="stat-label">常见情感</div>
                 </div>
-                <div class="stat-card" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">
+                <div class="stat-item">
                     <div class="stat-value" id="avgTokens">0</div>
-                    <div class="stat-label">平均关键词数</div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="examples-section">
-            <h2 class="section-title">
-                <span>📚</span>
-                <span>经典诗歌示例</span>
-            </h2>
-            <div class="example-poems">
-                <div class="example-card" onclick="loadExample('独在异乡为异客，每逢佳节倍思亲。遥知兄弟登高处，遍插茱萸少一人。')">
-                    <div class="example-title">《九月九日忆山东兄弟》</div>
-                    <div class="example-text">王维 - 思念之情</div>
-                </div>
-                <div class="example-card" onclick="loadExample('春花秋月何时了，往事知多少。小楼昨夜又东风，故国不堪回首月明中。')">
-                    <div class="example-title">《虞美人》</div>
-                    <div class="example-text">李煜 - 哀伤之情</div>
-                </div>
-                <div class="example-card" onclick="loadExample('怒发冲冠，凭栏处、潇潇雨歇。抬望眼，仰天长啸，壮怀激烈。')">
-                    <div class="example-title">《满江红》</div>
-                    <div class="example-text">岳飞 - 愤怒激昂</div>
-                </div>
-                <div class="example-card" onclick="loadExample('春风得意马蹄疾，一日看尽长安花。')">
-                    <div class="example-title">《登科后》</div>
-                    <div class="example-text">孟郊 - 喜悦之情</div>
+                    <div class="stat-label">平均关键词</div>
                 </div>
             </div>
         </div>
     </div>
     
     <script>
-        // Simulated model predictions for demo
-        // In production, this would call your Python backend
-        
         let analysisCount = 0;
-        let emotionStats = {
-            '哀伤': 0,
-            '思念': 0,
-            '怨恨': 0,
-            '喜悦': 0
-        };
+        let emotionStats = {};
+        const API_BASE_URL = 'http://localhost:5001';
         
         function loadExample(poem) {
             document.getElementById('poemInput').value = poem;
             analyzePoem();
         }
         
-        function analyzePoem() {
+        async function analyzePoem() {
             const poemText = document.getElementById('poemInput').value.trim();
             
             if (!poemText) {
@@ -501,178 +393,160 @@
             
             // Show loading
             document.getElementById('loadingDiv').classList.add('active');
-            document.getElementById('resultsDiv').style.display = 'none';
+            document.getElementById('resultsDiv').classList.remove('active');
             document.getElementById('analyzeBtn').disabled = true;
             
-            // Simulate API call delay
-            setTimeout(() => {
-                const results = simulateAnalysis(poemText);
+            try {
+                const response = await fetch(`${API_BASE_URL}/analyze`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ poem: poemText })
+                });
+                
+                if (!response.ok) throw new Error('Analysis failed');
+                
+                const results = await response.json();
                 displayResults(results);
                 updateStatistics(results);
                 
-                // Hide loading
+            } catch (error) {
+                console.error('Error:', error);
+                alert('分析失败，请稍后重试');
+            } finally {
                 document.getElementById('loadingDiv').classList.remove('active');
-                document.getElementById('resultsDiv').style.display = 'block';
+                document.getElementById('resultsDiv').classList.add('active');
                 document.getElementById('analyzeBtn').disabled = false;
-            }, 1500);
-        }
-        
-        function simulateAnalysis(poem) {
-            // This is a simplified simulation
-            // In production, this would be replaced with actual model predictions
-            
-            const tokens = poem.replace(/[，。！？、；：""''（）《》【】]/g, ' ').split(/\s+/).filter(t => t);
-            
-            // Simulate emotion detection based on keywords
-            const emotionKeywords = {
-                '哀伤': ['泪', '悲', '哀', '愁', '伤', '苦', '忧', '痛'],
-                '思念': ['思', '念', '想', '忆', '归', '乡', '远', '离'],
-                '怨恨': ['怒', '恨', '愤', '怨', '仇', '敌', '恶', '憎'],
-                '喜悦': ['喜', '乐', '欢', '笑', '春', '花', '美', '好']
-            };
-            
-            const emotions = {};
-            const tokenImportance = [];
-            
-            // Calculate emotion scores
-            for (const [emotion, keywords] of Object.entries(emotionKeywords)) {
-                let score = 0;
-                for (const token of tokens) {
-                    for (const keyword of keywords) {
-                        if (token.includes(keyword)) {
-                            score += 0.3;
-                        }
-                    }
-                }
-                emotions[emotion] = Math.min(score + Math.random() * 0.2, 1.0);
             }
-            
-            // Normalize scores
-            const maxScore = Math.max(...Object.values(emotions));
-            if (maxScore > 0) {
-                for (const emotion in emotions) {
-                    emotions[emotion] = emotions[emotion] / maxScore * 0.9 + 0.1;
-                }
-            }
-            
-            // Calculate token importance
-            tokens.forEach((token, index) => {
-                let importance = Math.random() * 0.5 + 0.1;
-                
-                // Increase importance for emotion keywords
-                for (const keywords of Object.values(emotionKeywords)) {
-                    for (const keyword of keywords) {
-                        if (token.includes(keyword)) {
-                            importance += 0.3;
-                        }
-                    }
-                }
-                
-                tokenImportance.push({
-                    token: token,
-                    importance: Math.min(importance, 1.0),
-                    index: index
-                });
-            });
-            
-            // Sort by importance
-            tokenImportance.sort((a, b) => b.importance - a.importance);
-            
-            return {
-                poem: poem,
-                emotions: emotions,
-                tokenImportance: tokenImportance
-            };
         }
         
         function displayResults(results) {
-            // Display emotion bars
-            const emotionResultsDiv = document.getElementById('emotionResults');
-            emotionResultsDiv.innerHTML = '';
+            // Predicted emotions
+            const predictedDiv = document.getElementById('predictedEmotions');
+            predictedDiv.innerHTML = '';
             
-            for (const [emotion, score] of Object.entries(results.emotions)) {
-                const percentage = (score * 100).toFixed(1);
-                
-                const emotionBar = document.createElement('div');
-                emotionBar.className = 'emotion-bar';
-                emotionBar.innerHTML = `
-                    <div class="emotion-label">
-                        <span class="emotion-name">${emotion}</span>
-                        <span class="emotion-score">${percentage}%</span>
-                    </div>
-                    <div class="progress-bar">
-                        <div class="progress-fill emotion-${emotion}" style="width: 0%"></div>
-                    </div>
-                `;
-                
-                emotionResultsDiv.appendChild(emotionBar);
-                
-                // Animate progress bar
-                setTimeout(() => {
-                    emotionBar.querySelector('.progress-fill').style.width = `${percentage}%`;
-                }, 100);
+            if (results.predicted_emotions && results.predicted_emotions.length > 0) {
+                results.predicted_emotions.forEach(emotion => {
+                    const tag = document.createElement('span');
+                    tag.className = 'emotion-tag';
+                    tag.textContent = emotion;
+                    predictedDiv.appendChild(tag);
+                });
+            } else {
+                predictedDiv.innerHTML = '<span style="color: #999;">未检测到明显情感</span>';
             }
             
-            // Display token importance
+            // Emotion scores
+            const emotionGrid = document.getElementById('emotionGrid');
+            emotionGrid.innerHTML = '';
+            
+            Object.entries(results.emotions)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 8) // Show top 8 emotions
+                .forEach(([emotion, score]) => {
+                    const percentage = (score * 100).toFixed(1);
+                    
+                    const item = document.createElement('div');
+                    item.className = 'emotion-item';
+                    item.innerHTML = `
+                        <span class="emotion-name">${emotion}</span>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 0%"></div>
+                        </div>
+                        <span class="emotion-score">${percentage}%</span>
+                    `;
+                    
+                    emotionGrid.appendChild(item);
+                    
+                    // Animate
+                    setTimeout(() => {
+                        item.querySelector('.progress-fill').style.width = `${percentage}%`;
+                    }, 100);
+                });
+            
+            // Important tokens
             const tokenContainer = document.getElementById('tokenContainer');
             tokenContainer.innerHTML = '';
             
-            results.tokenImportance.forEach((item, index) => {
-                if (index < 20) { // Show top 20 tokens
+            if (results.token_importance) {
+                results.token_importance.slice(0, 15).forEach(item => {
                     const tokenDiv = document.createElement('div');
                     tokenDiv.className = 'token';
+                    tokenDiv.textContent = item.token;
                     
                     // Color based on importance
-                    const hue = 250 - (item.importance * 60); // Purple to red
-                    const saturation = 50 + (item.importance * 30);
-                    const lightness = 90 - (item.importance * 30);
-                    tokenDiv.style.backgroundColor = `hsl(${hue}, ${saturation}%, ${lightness}%)`;
-                    
-                    // Add darker text for high importance tokens
-                    if (item.importance > 0.7) {
-                        tokenDiv.style.color = 'white';
-                    }
-                    
-                    tokenDiv.innerHTML = `
-                        ${item.token}
-                        <span class="token-tooltip">重要性: ${(item.importance * 100).toFixed(1)}%</span>
-                    `;
+                    const intensity = Math.min(item.importance * 2, 1);
+                    const blue = Math.floor(255 - (intensity * 100));
+                    tokenDiv.style.backgroundColor = `rgb(${blue}, ${blue + 20}, 255)`;
+                    tokenDiv.style.color = intensity > 0.5 ? 'white' : '#333';
                     
                     tokenContainer.appendChild(tokenDiv);
-                }
-            });
+                });
+            }
         }
         
         function updateStatistics(results) {
             analysisCount++;
             document.getElementById('totalAnalyzed').textContent = analysisCount;
             
-            // Update emotion statistics
-            const predictedEmotions = Object.entries(results.emotions)
-                .filter(([_, score]) => score > 0.5)
-                .map(([emotion, _]) => emotion);
-            
+            const predictedEmotions = results.predicted_emotions || [];
             predictedEmotions.forEach(emotion => {
-                emotionStats[emotion]++;
+                emotionStats[emotion] = (emotionStats[emotion] || 0) + 1;
             });
             
-            // Average emotions per poem
-            const avgEmotions = predictedEmotions.length;
-            const currentAvg = parseFloat(document.getElementById('avgEmotions').textContent);
-            const newAvg = ((currentAvg * (analysisCount - 1)) + avgEmotions) / analysisCount;
+            // Average emotions
+            const currentAvg = parseFloat(document.getElementById('avgEmotions').textContent) || 0;
+            const newAvg = ((currentAvg * (analysisCount - 1)) + predictedEmotions.length) / analysisCount;
             document.getElementById('avgEmotions').textContent = newAvg.toFixed(1);
             
             // Dominant emotion
-            const dominantEmotion = Object.entries(emotionStats)
-                .sort(([_, a], [__, b]) => b - a)[0][0];
-            document.getElementById('dominantEmotion').textContent = dominantEmotion;
+            if (Object.keys(emotionStats).length > 0) {
+                const dominant = Object.entries(emotionStats)
+                    .sort(([_, a], [__, b]) => b - a)[0][0];
+                document.getElementById('dominantEmotion').textContent = dominant;
+            }
             
-            // Average important tokens
-            const importantTokens = results.tokenImportance.filter(t => t.importance > 0.5).length;
-            const currentAvgTokens = parseFloat(document.getElementById('avgTokens').textContent);
+            // Average tokens
+            const importantTokens = (results.token_importance || []).filter(t => t.importance > 0.5).length;
+            const currentAvgTokens = parseFloat(document.getElementById('avgTokens').textContent) || 0;
             const newAvgTokens = ((currentAvgTokens * (analysisCount - 1)) + importantTokens) / analysisCount;
             document.getElementById('avgTokens').textContent = newAvgTokens.toFixed(1);
         }
+        
+        async function loadExamples() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/examples`);
+                const examples = await response.json();
+                
+                const exampleGrid = document.getElementById('exampleGrid');
+                exampleGrid.innerHTML = '';
+                
+                examples.forEach(example => {
+                    const card = document.createElement('div');
+                    card.className = 'example-card';
+                    card.onclick = () => loadExample(example.text);
+                    
+                    const emotionTags = example.expected_emotions.map(emotion => 
+                        `<span class="example-emotion">${emotion}</span>`
+                    ).join('');
+                    
+                    card.innerHTML = `
+                        <div class="example-title">${example.title}</div>
+                        <div class="example-author">${example.author}</div>
+                        <div class="example-emotions">${emotionTags}</div>
+                    `;
+                    
+                    exampleGrid.appendChild(card);
+                });
+                
+            } catch (error) {
+                console.error('Error loading examples:', error);
+            }
+        }
+        
+        // Initialize
+        window.addEventListener('DOMContentLoaded', () => {
+            loadExamples();
+        });
     </script>
 </body>
 </html>
